@@ -1,3 +1,4 @@
+require('dotenv').config()  // dotenv LVL3 Security
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -20,10 +21,9 @@ const userSchema = new mongoose.Schema ( {
   password: String
 });
 
-const secret = "Thisisourlittlesecret.";
 
-//  Encryption of password
-userSchema.plugin(encrypt, { secret: secret, encryptedFields: ['password']});
+//  Encryption of password  LVL2 Security
+userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password']});
 
 // New User Model
 const User = new mongoose.model("User", userSchema)
