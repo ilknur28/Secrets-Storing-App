@@ -7,6 +7,7 @@ const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy; // Password strateggy
+const FacebookStrategy = require('passport-facebook').Strategy;
 const findOrCreate = require("mongoose-findorcreate");
 
 
@@ -41,7 +42,8 @@ mongoose.set("useCreateIndex", true);
 const userSchema = new mongoose.Schema({
   email: String, //email
   password: String,
-  googleId: String
+  googleId: String,
+  facebookId: String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -78,6 +80,21 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+//FB Authentication Strategy
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/secrets"
+  },
+  function(accessToken, refreshToken, profile, done) {
+    User.findOrCreate(
+    {facebookId:profile.id} , function(err, user) {
+      if (err) { return done(err); }
+      done(null, user);
+    });
+  }
+));
+
 app.get("/", function(req, res) {
   res.render("home");
 });
@@ -95,6 +112,21 @@ app.get("/auth/google/secrets",
       // Successful authentication, redirect home.
       res.redirect('/secrets');
     });
+
+    // Redirect the user to Facebook for authentication.  When complete,
+    // Facebook will redirect the user back to the application at
+    //     /auth/facebook/callback
+    app.get('/auth/facebook', passport.authenticate('facebook'));
+
+    // Facebook will redirect the user to this URL after approval.  Finish the
+    // authentication process by attempting to obtain an access token.  If
+    // access was granted, the user will be logged in.  Otherwise,
+    // authentication has failed.
+    app.get('/auth/facebook/secrets',
+      passport.authenticate('facebook', { successRedirect: '/secrets',
+                                          failureRedirect: '/login' }));
+
+
 
 
 app.get("/login", function(req, res) {
